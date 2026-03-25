@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-grid.full {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    input,
+    textarea,
+    select {
+        padding: 0.75rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+        padding: 0.75rem 2rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .error {
+        color: #e74c3c;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .success {
+        color: #27ae60;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .volunteers-list {
+        max-width: 1200px;
+        margin: 3rem auto;
+    }
+
+    .volunteer-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .volunteer-card h3 {
+        margin: 0;
+        color: var(--primary);
+    }
+
+    .volunteer-card p {
+        margin: 0.25rem 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="hero-section">
+    <h1>Join Our Volunteers</h1>
+    <p>Your time and effort can change lives. Sign up today.</p>
+</div>
+
+<div class="form-container">
+    {% if not session.get('guest') %}
+    <h2>Register as Volunteer</h2>
+    <form id="volunteerForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="volName" placeholder="Enter your name"
+                    value="{{ user.full_name if user else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="volEmail" placeholder="Enter your email"
+                    value="{{ user.email if user else '' }}" required>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="volPhone" placeholder="Enter your phone number"
+                    value="{{ user.phone if user else '' }}">
+            </div>
+            <div class="form-group">
+                <label>Availability</label>
+                <input type="text" id="volAvailability" placeholder="e.g., Weekends, 5pm-8pm">
+            </div>
+        </div>
+
+        <div class="form-grid full">
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="volAddress" placeholder="Your residential address"
+                    value="{{ user.address if user else '' }}">
+            </div>
+        </div>
+
+        <div class="form-grid full">
+            <div class="form-group">
+                <label>Skills</label>
+                <textarea id="volSkills" placeholder="List your skills (e.g., Teaching, Medical, Driving, etc.)"
+                    rows="3"></textarea>
+            </div>
+        </div>
+
+        <button type="submit">Sign Up as Volunteer</button>
+        <div id="volError" class="error"></div>
+        <div id="volSuccess" class="success"></div>
+    </form>
+    {% else %}
+    <div style="text-align: center; padding: 2rem;">
+        <h2>Meet Our Volunteers</h2>
+        <p>Guest users can view the list of volunteers below. To sign up as a volunteer, please <a
+                href="{{ url_for('index') }}" style="color: var(--primary);">login or register</a> first.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="volunteers-list">
+    <h2>Our Volunteers</h2>
+    <div id="volunteersList"></div>
+</div>
+
+<script>
+    document.getElementById('volunteerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('volName').value,
+            email: document.getElementById('volEmail').value,
+            phone: document.getElementById('volPhone').value,
+            availability: document.getElementById('volAvailability').value,
+            address: document.getElementById('volAddress').value,
+            skills: document.getElementById('volSkills').value
+        };
+
+        try {
+            const res = await fetch('/api/volunteers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                document.getElementById('volError').innerHTML = '';
+                document.getElementById('volSuccess').innerHTML = 'Successfully registered as volunteer!';
+                document.getElementById('volunteerForm').reset();
+                loadVolunteers();
+                setTimeout(() => {
+                    document.getElementById('volSuccess').innerHTML = '';
+                }, 3000);
+            } else {
+                const error = await res.json();
+                document.getElementById('volError').innerHTML = error.error || 'Registration failed!';
+            }
+        } catch (e) {
+            document.getElementById('volError').innerHTML = 'Error: ' + e.message;
+        }
+    });
+
+    async function loadVolunteers() {
+        try {
+            const res = await fetch('/api/volunteers');
+            if (res.ok) {
+                const volunteers = await res.json();
+                const volsList = document.getElementById('volunteersList');
+
+                if (volunteers.length === 0) {
+                    volsList.innerHTML = '<p style="color: #999;">No volunteers registered yet. Be the first!</p>';
+                    return;
+                }
+
+                volsList.innerHTML = volunteers.map(v => `
+                    <div class="volunteer-card">
+                        <div>
+                            <h3>${v.name}</h3>
+                            <p><strong>Email:</strong> ${v.email}</p>
+                        </div>
+                        <div>
+                            <p><strong>Phone:</strong> ${v.phone || 'Not provided'}</p>
+                            <p><strong>Availability:</strong> ${v.availability || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <p><strong>Skills:</strong> ${v.skills || 'General'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            console.error('Error loading volunteers:', e);
+        }
+    }
+
+    loadVolunteers();
+</script>
+{% endblock %}

@@ -1,0 +1,477 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #666;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .form-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-grid.full {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    input,
+    textarea,
+    select {
+        padding: 0.75rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+        padding: 0.75rem 2rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .error {
+        color: #e74c3c;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .success {
+        color: #27ae60;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .guest-box {
+        background: #f0f7ff;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary);
+    }
+
+    .qr-display {
+        text-align: center;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        display: none;
+    }
+
+    .qr-display img {
+        max-width: 200px;
+        border-radius: 8px;
+    }
+
+    .voucher-box {
+        background: linear-gradient(135deg, #fff5e1 0%, #fff9e6 100%);
+        border: 3px dashed var(--secondary);
+        padding: 2rem;
+        text-align: center;
+        border-radius: 12px;
+        margin-top: 2rem;
+    }
+
+    .voucher-code {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--primary);
+        letter-spacing: 4px;
+        word-break: break-all;
+        margin: 1rem 0;
+        font-family: 'Courier New', monospace;
+    }
+</style>
+
+<div class="hero-section">
+    <h1>Make a Donation</h1>
+    <p>Your generosity fuels our mission. Choose how you want to help.</p>
+</div>
+
+<div class="form-container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'donate-item')">Donate Item</button>
+        <button class="tab-btn" onclick="switchTab(event, 'donate-money')">Donate Money</button>
+        <button class="tab-btn" onclick="switchTab(event, 'voucher')">My Voucher</button>
+    </div>
+
+    <!-- Donate Item Tab -->
+    <div id="donate-item" class="tab-content active">
+        <h2>Donate an Item</h2>
+        <form id="donateItemForm">
+            <input type="hidden" value="item">
+
+            {% if session.get('guest') %}
+            <div class="form-grid full guest-box">
+                <div class="form-group">
+                    <label><strong>Guest Details</strong></label>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Your Name *</label>
+                        <input type="text" id="itemDonorName" placeholder="Enter your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Your Email *</label>
+                        <input type="email" id="itemDonorEmail" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="itemDonorPhone" placeholder="Your phone (optional)">
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="form-grid full" style="margin-bottom: 1rem; color: #666;">
+                <p>Donating as: <strong>{{ user.full_name or user.username if user else 'User' }}</strong></p>
+                <input type="hidden" id="itemDonorName" value="{{ user.full_name if user else '' }}">
+                <input type="hidden" id="itemDonorEmail" value="{{ user.email if user else '' }}">
+                <input type="hidden" id="itemDonorPhone" value="{{ user.phone if user else '' }}">
+            </div>
+            {% endif %}
+
+            <div class="form-grid full">
+                <div class="form-group">
+                    <label>Select NGO *</label>
+                    <select id="itemNgoId" required>
+                        <option value="">Select an NGO</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" id="itemName" placeholder="e.g., Clothes, Books, Toys" required>
+                </div>
+                <div class="form-group">
+                    <label>Condition</label>
+                    <select id="itemCondition">
+                        <option value="">Select condition</option>
+                        <option value="new">New</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid full">
+                <div class="form-group">
+                    <label>Upload Item Picture</label>
+                    <input type="file" id="itemFile" accept="image/*">
+                </div>
+            </div>
+
+            <button type="submit">Donate Item</button>
+            <div id="itemError" class="error"></div>
+            <div id="itemSuccess" class="success"></div>
+        </form>
+    </div>
+
+    <!-- Donate Money Tab -->
+    <div id="donate-money" class="tab-content">
+        <h2>Donate Money</h2>
+        <form id="donateMoneyForm">
+            <input type="hidden" value="money">
+
+            {% if session.get('guest') %}
+            <div class="form-grid full guest-box">
+                <div class="form-group">
+                    <label><strong>Guest Details</strong></label>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Your Name *</label>
+                        <input type="text" id="moneyDonorName" placeholder="Enter your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Your Email *</label>
+                        <input type="email" id="moneyDonorEmail" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="moneyDonorPhone" placeholder="Your phone (optional)">
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="form-grid full" style="margin-bottom: 1rem; color: #666;">
+                <p>Donating as: <strong>{{ user.full_name or user.username if user else 'User' }}</strong></p>
+                <input type="hidden" id="moneyDonorName" value="{{ user.full_name if user else '' }}">
+                <input type="hidden" id="moneyDonorEmail" value="{{ user.email if user else '' }}">
+                <input type="hidden" id="moneyDonorPhone" value="{{ user.phone if user else '' }}">
+            </div>
+            {% endif %}
+
+            <div class="form-grid full">
+                <div class="form-group">
+                    <label>Select NGO *</label>
+                    <select id="moneyNgoId" onchange="showQrCode()" required>
+                        <option value="">Select an NGO</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="qrDisplay" class="qr-display">
+                <p><strong>Scan to Pay:</strong></p>
+                <img id="qrImage" src="" alt="NGO QR Code">
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Amount (INR) *</label>
+                    <input type="number" id="donationAmount" placeholder="Enter amount" min="1" step="1" required>
+                </div>
+            </div>
+
+            <button type="submit">Donate Money</button>
+            <div id="moneyError" class="error"></div>
+            <div id="moneySuccess" class="success"></div>
+        </form>
+    </div>
+
+    <!-- Voucher Tab -->
+    <div id="voucher" class="tab-content">
+        <h2>Your Gift Voucher</h2>
+        <p>Donate money to receive a special gift voucher!</p>
+        <div id="voucherContent"></div>
+    </div>
+</div>
+
+<script>
+    let currentVoucher = null;
+    let ngos = [];
+
+    async function loadNGOs() {
+        try {
+            const res = await fetch('/api/ngos');
+            if (res.ok) {
+                ngos = await res.json();
+                const itemSelect = document.getElementById('itemNgoId');
+                const moneySelect = document.getElementById('moneyNgoId');
+
+                const options = ngos.map(ngo => `<option value="${ngo.id}">${ngo.name}</option>`).join('');
+                if (itemSelect) itemSelect.innerHTML = '<option value="">Select an NGO</option>' + options;
+                if (moneySelect) moneySelect.innerHTML = '<option value="">Select an NGO</option>' + options;
+            }
+        } catch (e) {
+            console.error('Error loading NGOs:', e);
+        }
+    }
+
+    function switchTab(event, tabName) {
+        const contents = document.querySelectorAll('.tab-content');
+        const buttons = document.querySelectorAll('.tab-btn');
+
+        contents.forEach(c => c.classList.remove('active'));
+        buttons.forEach(b => b.classList.remove('active'));
+
+        document.getElementById(tabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function showQrCode() {
+        const select = document.getElementById('moneyNgoId');
+        const selectedId = select.value;
+        const ngo = ngos.find(n => n.id == selectedId);
+        const display = document.getElementById('qrDisplay');
+        const img = document.getElementById('qrImage');
+
+        if (ngo && ngo.qr_code) {
+            img.src = ngo.qr_code;
+            display.style.display = 'block';
+        } else {
+            display.style.display = 'none';
+        }
+    }
+
+    document.getElementById('donateItemForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('type', 'item');
+        formData.append('ngo_id', document.getElementById('itemNgoId').value);
+        formData.append('item_name', document.getElementById('itemName').value);
+
+        const nameInput = document.getElementById('itemDonorName');
+        const emailInput = document.getElementById('itemDonorEmail');
+        const phoneInput = document.getElementById('itemDonorPhone');
+
+        formData.append('donor_name', nameInput ? nameInput.value : 'Anonymous');
+        formData.append('donor_email', emailInput ? emailInput.value : '');
+        formData.append('donor_phone', phoneInput ? phoneInput.value : '');
+
+        if (document.getElementById('itemFile').files[0]) {
+            formData.append('item_file', document.getElementById('itemFile').files[0]);
+        }
+
+        try {
+            const res = await fetch('/api/donations', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                document.getElementById('itemError').innerHTML = '';
+                document.getElementById('itemSuccess').innerHTML = 'Thank you! Item donation successful!';
+                document.getElementById('donateItemForm').reset();
+                setTimeout(() => {
+                    document.getElementById('itemSuccess').innerHTML = '';
+                    window.location.reload(); // Reload to reset logic
+                }, 2000);
+            } else {
+                const error = await res.json();
+                document.getElementById('itemError').innerHTML = error.error || 'Donation failed!';
+            }
+        } catch (e) {
+            document.getElementById('itemError').innerHTML = 'Error: ' + e.message;
+        }
+    });
+
+    document.getElementById('donateMoneyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('type', 'money');
+        formData.append('ngo_id', document.getElementById('moneyNgoId').value);
+        formData.append('amount', document.getElementById('donationAmount').value);
+
+        const nameInput = document.getElementById('moneyDonorName');
+        const emailInput = document.getElementById('moneyDonorEmail');
+        const phoneInput = document.getElementById('moneyDonorPhone');
+
+        formData.append('donor_name', nameInput ? nameInput.value : 'Anonymous');
+        formData.append('donor_email', emailInput ? emailInput.value : '');
+        formData.append('donor_phone', phoneInput ? phoneInput.value : '');
+
+        try {
+            const res = await fetch('/api/donations', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                currentVoucher = result.voucher_code;
+                document.getElementById('moneyError').innerHTML = '';
+                document.getElementById('moneySuccess').innerHTML = 'Thank you! Your donation was successful!';
+                document.getElementById('donateMoneyForm').reset();
+                showVoucher();
+                setTimeout(() => {
+                    document.getElementById('moneySuccess').innerHTML = '';
+                }, 3000);
+            } else {
+                const error = await res.json();
+                document.getElementById('moneyError').innerHTML = error.error || 'Donation failed!';
+            }
+        } catch (e) {
+            document.getElementById('moneyError').innerHTML = 'Error: ' + e.message;
+        }
+    });
+
+    function showVoucher() {
+        if (currentVoucher) {
+            document.getElementById('voucherContent').innerHTML = `
+                <div class="voucher-box">
+                    <i class="fas fa-ticket" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem; display: block;"></i>
+                    <h3>Thank You for Your Donation!</h3>
+                    <p>Here is your voucher code:</p>
+                    <div class="voucher-code">${currentVoucher}</div>
+                    <p style="color: #666; margin-top: 1rem;">Share this code or save it for future use!</p>
+                </div>
+            `;
+            // Switch to voucher tab
+            const voucherBtn = document.querySelector('button[onclick*="voucher"]');
+            if (voucherBtn) voucherBtn.click();
+        }
+    }
+
+    // Initialize
+    loadNGOs();
+</script>
+{% endblock %}

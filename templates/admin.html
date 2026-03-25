@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    
+    .section h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        color: var(--primary);
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    thead th {
+        background: #f8f9fa;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    tbody td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .empty {
+        text-align: center;
+        color: #999;
+        padding: 2rem;
+    }
+</style>
+
+<div class="hero-section">
+    <h1>Admin Dashboard</h1>
+    <p>View all registered organizations, volunteers, and donations</p>
+</div>
+
+<div class="admin-container">
+    <div class="section">
+        <h2>Registered NGOs</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                </tr>
+            </thead>
+            <tbody id="ngosList">
+                <tr><td colspan="4" class="empty">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Volunteers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Skills</th>
+                </tr>
+            </thead>
+            <tbody id="volunteersList">
+                <tr><td colspan="4" class="empty">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Donations</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Amount/Item</th>
+                    <th>Donor</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="donationsList">
+                <tr><td colspan="4" class="empty">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function loadAdminData() {
+        try {
+            const res = await fetch('/api/admin/all');
+            if (res.ok) {
+                const data = await res.json();
+                
+                // NGOs
+                if (data.ngos.length === 0) {
+                    document.getElementById('ngosList').innerHTML = '<tr><td colspan="4" class="empty">No NGOs</td></tr>';
+                } else {
+                    document.getElementById('ngosList').innerHTML = data.ngos.map(ngo => `
+                        <tr>
+                            <td><strong>${ngo.name}</strong></td>
+                            <td>${ngo.email}</td>
+                            <td>${ngo.phone}</td>
+                            <td>${ngo.address || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Volunteers
+                if (data.volunteers.length === 0) {
+                    document.getElementById('volunteersList').innerHTML = '<tr><td colspan="4" class="empty">No volunteers</td></tr>';
+                } else {
+                    document.getElementById('volunteersList').innerHTML = data.volunteers.map(v => `
+                        <tr>
+                            <td><strong>${v.name}</strong></td>
+                            <td>${v.email}</td>
+                            <td>${v.phone || 'N/A'}</td>
+                            <td>${v.skills || 'General'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Donations
+                if (data.donations.length === 0) {
+                    document.getElementById('donationsList').innerHTML = '<tr><td colspan="4" class="empty">No donations</td></tr>';
+                } else {
+                    document.getElementById('donationsList').innerHTML = data.donations.map(d => {
+                        const amount = d.type === 'money' ? `₹${d.amount}` : d.item_name;
+                        const date = d.date ? new Date(d.date).toLocaleDateString() : 'N/A';
+                        return `
+                            <tr>
+                                <td><strong>${d.type === 'money' ? 'Money' : 'Item'}</strong></td>
+                                <td>${amount}</td>
+                                <td>${d.donor_name || 'Anonymous'}</td>
+                                <td>${date}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } else {
+                alert('Not authorized');
+                window.location.href = '/dashboard';
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Error loading admin data');
+        }
+    }
+    
+    loadAdminData();
+</script>
+{% endblock %}

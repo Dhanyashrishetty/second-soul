@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero-section">
+    <h1>Welcome to Second Soul</h1>
+    <p>Connecting hearts, sharing hope. Join us in making a difference today.</p>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto; margin-bottom: 2rem;">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'login')">Login</button>
+        <button class="tab-btn" onclick="openTab(event, 'register')">Register</button>
+    </div>
+
+    <div id="login" class="tab-content active">
+        <h2 style="text-align: center; margin-bottom: 1rem;">Login to your account</h2>
+        <form id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+            <div id="loginError" class="error" style="color: red; margin-top: 0.5rem; text-align: center;"></div>
+        </form>
+    </div>
+
+    <div id="register" class="tab-content">
+        <h2 style="text-align: center; margin-bottom: 1rem;">Create a new account</h2>
+        <form id="registerForm">
+            <input type="text" id="regName" placeholder="Full Name" required>
+            <input type="email" id="regEmail" placeholder="Email" required>
+            <input type="password" id="regPassword" placeholder="Password" required>
+            <input type="tel" id="regPhone" placeholder="Phone Number" required>
+
+            <button type="submit">Register</button>
+            <div id="regError" class="error" style="color: red; margin-top: 0.5rem; text-align: center;"></div>
+            <div id="regSuccess" class="success" style="color: green; margin-top: 0.5rem; text-align: center;"></div>
+        </form>
+    </div>
+</div>
+
+<div style="text-align: center;">
+    <p style="margin-bottom: 1rem;">Or continue without an account:</p>
+    <button onclick="continueGuest()" class="button-link"
+        style="background-color: var(--secondary); padding: 0.8rem 2rem; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; border: none; cursor: pointer; font-size: 1rem;">Continue
+        as Guest</button>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.className += " active";
+    }
+
+    // Login Handler
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                window.location.href = '/dashboard';
+            } else {
+                document.getElementById('loginError').textContent = data.error || 'Login failed';
+            }
+        } catch (err) {
+            document.getElementById('loginError').textContent = 'An error occurred. Please try again.';
+        }
+    });
+
+    // Register Handler
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const phone = document.getElementById('regPhone').value;
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, phone })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                document.getElementById('regSuccess').textContent = 'Registration successful! Please login.';
+                document.getElementById('regError').textContent = '';
+                document.getElementById('registerForm').reset();
+                setTimeout(() => {
+                    document.querySelector('.tab-btn[onclick*="login"]').click();
+                    document.getElementById('regSuccess').textContent = '';
+                }, 2000);
+            } else {
+                document.getElementById('regError').textContent = data.error || 'Registration failed';
+                document.getElementById('regSuccess').textContent = '';
+            }
+        } catch (err) {
+            document.getElementById('regError').textContent = 'An error occurred.';
+        }
+    });
+
+    // Guest Handler
+    async function continueGuest() {
+        try {
+            const res = await fetch('/api/guest', { method: 'POST' });
+            if (res.ok) {
+                window.location.href = '/dashboard';
+            }
+        } catch (err) {
+            console.error('Guest access failed', err);
+        }
+    }
+</script>
+{% endblock %}
